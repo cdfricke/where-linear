@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
-import where_linear as wl
 
 def linear(x: np.ndarray, fit: np.ndarray):
     """
@@ -74,8 +73,8 @@ for shift in shifts:
     # PERFORM FIT, FIRST DEGREE, OBTAIN SLOPE AND INTERCEPT
     fit_Q = np.polyfit(x_data[WIN_START:WIN_END], y_data_Q[WIN_START:WIN_END], deg=1)
     fit_f = np.polyfit(x_data[WIN_START:WIN_END], y_data_f[WIN_START:WIN_END], deg=1)
-    y_fit_Q = wl.linear(x_data, fit_Q)
-    y_fit_f = wl.linear(x_data, fit_f)
+    y_fit_Q = linear(x_data, fit_Q)
+    y_fit_f = linear(x_data, fit_f)
 
     print("SLOPE:", fit_Q[0])
     slopes_Q.append(fit_Q[0])
