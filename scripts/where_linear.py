@@ -1,3 +1,8 @@
+# Programmer: Connor Fricke (cd.fricke23@gmail.com)
+# File: where_linear.py
+# Latest Rev: 17-Dec-2024
+# Desc: module for linear domain finder, designed to find a region within data which is best fit by linear regression
+
 import numpy as np
 
 class DomainFinder:
@@ -18,6 +23,11 @@ class DomainFinder:
     
     def setYData(self, data: list):
         self._ydata = np.array(data)
+
+    
+
+
+
 
 
     
