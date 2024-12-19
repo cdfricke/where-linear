@@ -1,23 +1,12 @@
-import matplotlib.pyplot as plt
+# Programmer: Connor Fricke
+# File: main.py
+# Latest Rev: 19-Dec-2024
+# Desc: main script for testing where_linear module on available
+# datasets for a comparison of Q shift and frequency shift vs. insertion height.
+
 import pandas as pd
-import numpy as np
+import where_linear as wl
 import os
-
-def linear(x: np.ndarray, fit: np.ndarray):
-    """
-    Applies a simple y = mx + b transformation of a single value or array-like input.
-    The second parameter (fit) should be an array of the coefficients as returned by 
-    the NumPy function polyfit(deg=1).
-    """
-    return (x * fit[0]) + fit[1] 
-
-def quadratic(x: np.ndarray, fit: np.ndarray):
-    """
-    Applies a simple y = ax^2 + bx + c transformation of a single value or array-like input.
-    The second parameter (fit) should be an array of the coefficients as returned by 
-    the NumPy function polyfit(deg=2).
-    """
-    return (x * x * fit[0]) + (x * fit[1]) + fit[2]
 
 # for debugging
 cwd = os.getcwd()
@@ -51,86 +40,15 @@ x_data = df['height (mm)'].to_numpy()
 y_data_Q = df['Q_shift'].to_numpy()
 y_data_f = df['freq_shift'].to_numpy()
 
-# *********************
-# ** ALGORITHM SETUP **
-# *********************
-PLOT_INTERMEDIATE = False   # controls whether each intermediate plot is displayed as the window slides
-WIN_WIDTH = 5               # width of window, sets the number of pts to include in each fit
-DEV_CUTOFF = 0.1            # if slope has a larger deviation than this between two consecutive windows, the region is considered as a new domain
+LDF = wl.LinearDomainFinder()
+LDF.setX(x_data, label='height (mm)')
+LDF.setY(y_data_Q, label='Q_shift')
+LDF.setVerbosity(1)
+LDF.slidingWindowFind(WIN_SIZE=5, FDEV_CUT=0.1)
 
-shifts = [x for x in range(len(x_data) - WIN_WIDTH + 1)]
-slopes_Q = []
-slopes_f = []
+resultDomain = LDF.LLD
+resultSlope = LDF.slope
 
-# ************************
-# ** SLIDING WINDOW ALG **
-# ************************
-for shift in shifts:
-    # window end (exclusive idx)
-    WIN_START = shift
-    WIN_END = WIN_START + WIN_WIDTH
-    
-    # PERFORM FIT, FIRST DEGREE, OBTAIN SLOPE AND INTERCEPT
-    fit_Q = np.polyfit(x_data[WIN_START:WIN_END], y_data_Q[WIN_START:WIN_END], deg=1)
-    fit_f = np.polyfit(x_data[WIN_START:WIN_END], y_data_f[WIN_START:WIN_END], deg=1)
-    y_fit_Q = linear(x_data, fit_Q)
-    y_fit_f = linear(x_data, fit_f)
-
-    print("SLOPE:", fit_Q[0])
-    slopes_Q.append(fit_Q[0])
-    slopes_f.append(fit_f[0])
-
-    # PLOT 
-    if PLOT_INTERMEDIATE:
-        fig, axs = plt.subplots(2, 1)
-        fig.suptitle("Shifts vs. Insertion Height")
-        axs[0].plot(x_data, y_data_Q, '+')
-        axs[0].plot(x_data[WIN_START:WIN_END], y_fit_Q[WIN_START:WIN_END], 'g-')
-        axs[0].set(ylabel="Q Shift")
-        axs[1].plot(x_data, y_data_f, '+')
-        axs[1].plot(x_data[WIN_START:WIN_END], y_fit_f[WIN_START:WIN_END], 'g-')
-        axs[1].set(ylabel="Freq Shift")
-        plt.show()
-
-# this list will store the domain id for each "shift" value of the sliding window
-# consecutive shift values corresponding to similar slopes will be labeled with the same id, meaning they are in the same domain
-currentDomain_Q = 0                 # initialize domain
-currentDomain_f = 0                 
-currentSlope_Q = slopes_Q[0]        # initialize slope
-currentSlope_f = slopes_f[0]    
-domain_ids_Q = [currentDomain_Q]    # intialize list of ids
-domain_ids_f = [currentDomain_f]   
-
-
-for i in range(1, len(shifts)):
-    slope_Q_dev = abs(slopes_Q[i] - currentSlope_Q) / currentSlope_Q   # fractional deviation between the most recently selected slope and the current one in the list 
-    slope_f_dev = abs(slopes_f[i] - currentSlope_f) / currentSlope_f   
-
-    if slope_Q_dev < DEV_CUTOFF:   # no significant deviation for new slope, assign to current domain
-        domain_ids_Q.append(currentDomain_Q)
-    else:                   # significant deviation for new slope, increment domain id and add to list, also reassign new slope
-        currentDomain_Q += 1
-        domain_ids_Q.append(currentDomain_Q)
-        currentSlope_Q = slopes_Q[i]
-
-    if slope_f_dev < DEV_CUTOFF:   #
-        domain_ids_f.append(currentDomain_f)
-    else:                   
-        currentDomain_f += 1
-        domain_ids_f.append(currentDomain_f)
-        currentSlope_f = slopes_f[i]
-    
-print(domain_ids_Q, len(domain_ids_Q), len(shifts))
-print(domain_ids_f, len(domain_ids_f), len(shifts))
-
-# plot slope against window shift. Linear domains will look like a flat line
-fig, axs = plt.subplots(2, 1)
-fig.suptitle("Window Shift vs. Slope")
-axs[0].scatter(shifts, slopes_Q, c=domain_ids_Q)
-axs[0].set(title="Q Shift")
-axs[1].scatter(shifts, slopes_f, c=domain_ids_f)
-axs[1].set(title="Freq Shift")
-plt.show()
 
 
 
